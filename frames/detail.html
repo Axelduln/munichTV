@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>München Kinos – Filmdetails</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background-color: #0a0a0a; color: #e5e5e5; margin: 0; }
+    .time-tag {
+      background-color: #1e293b;
+      color: #93c5fd;
+      font-size: 0.875rem;
+      padding: 5px 14px;
+      margin: 3px;
+      display: inline-block;
+      border-radius: 2px;
+    }
+    .badge {
+      background-color: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #d0d0d0;
+      font-size: 0.8rem;
+      padding: 3px 10px;
+      display: inline-block;
+      border-radius: 2px;
+    }
+    .cinema-block {
+      background-color: #111111;
+      border: 1px solid #1e1e1e;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      border-radius: 2px;
+    }
+    #left-col { overflow-y: auto; }
+    #right-col { overflow-y: auto; }
+  </style>
+</head>
+<body class="font-sans antialiased">
+
+  <div style="height:100vh; display:flex; flex-direction:column; overflow:hidden;">
+
+    <!-- Header: title + back QR -->
+    <header style="border-bottom:1px solid #2a2a2a; flex-shrink:0; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+      <h1 id="movie-title" style="font-size:1.5rem; font-weight:700; margin:0; line-height:1.2;">Lade…</h1>
+      <div style="flex-shrink:0; text-align:center;">
+        <div id="qr-back"></div>
+        <p style="font-size:0.7rem; color:#a3a3a3; margin-top:4px;">Zurück</p>
+      </div>
+    </header>
+
+    <!-- Body: two columns -->
+    <div style="flex:1; min-height:0; display:flex; flex-direction:row; gap:0;">
+
+      <!-- Left: poster + description -->
+      <div id="left-col" style="width:240px; flex-shrink:0; padding:16px; border-right:1px solid #1a1a1a; display:flex; flex-direction:column; gap:14px;">
+        <div id="loading-left" style="color:#a3a3a3; font-size:0.85rem;">⏳ Lade…</div>
+        <img id="poster" src="" alt=""
+          style="width:100%; border-radius:4px; object-fit:cover; display:none; flex-shrink:0;">
+        <div id="desc-block" style="display:none;">
+          <p style="color:#a3a3a3; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; margin:0 0 6px;">Beschreibung</p>
+          <p id="movie-description" style="color:#c0c0c0; font-size:0.8rem; line-height:1.6; margin:0;"></p>
+        </div>
+      </div>
+
+      <!-- Right: metadata + showtimes -->
+      <div id="right-col" style="flex:1; min-width:0; padding:16px; display:flex; flex-direction:column; gap:16px;">
+
+        <div id="loading-right" class="text-center" style="padding-top:40px; color:#a3a3a3;">
+          <p>Filminfos werden geladen…</p>
+        </div>
+
+        <div id="content" style="display:none; flex-direction:column; gap:16px; flex:1; min-height:0;">
+
+          <!-- Badges row -->
+          <div id="badges" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+
+          <!-- Key-value metadata -->
+          <div id="details-list"></div>
+
+          <!-- Showtimes -->
+          <div style="flex:1; min-height:0; overflow-y:auto;">
+            <p style="color:#a3a3a3; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; margin:0 0 10px;">Spielzeiten</p>
+            <div id="showtimes-list"></div>
+          </div>
+
+        </div>
+
+        <div id="error-msg" style="display:none; padding-top:40px; color:#a3a3a3; text-align:center;">
+          <p id="error-text">Film nicht gefunden.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const BASE_API    = 'https://lehre.bpm.in.tum.de/ports/63826';
+    const BASE_FRAMES = 'https://lehre.bpm.in.tum.de/~ge82bob/frames';
+
+    const params      = new URLSearchParams(window.location.search);
+    const movieKey    = params.get('movie') || '';
+    const category    = params.get('category') || 'blockbuster';
+    const instanceUrl = params.get('instance') || '';
+    const cb          = window.name || '';
+
+    // Back QR
+    new QRCode(document.getElementById('qr-back'), {
+      text: BASE_FRAMES + '/send.php?info=back&cb=' + encodeURIComponent(cb),
+      width: 80,
+      height: 80,
+      colorDark: '#e5e5e5',
+      colorLight: '#111111',
+      correctLevel: QRCode.CorrectLevel.L
+    });
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function normalize(s) {
+      return String(s).trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    function render(movies) {
+      const key   = normalize(movieKey);
+      const movie = movies.find(function(m) {
+        return normalize(m.title_normalized || m.title) === key;
+      });
+
+      document.getElementById('loading-left').style.display  = 'none';
+      document.getElementById('loading-right').style.display = 'none';
+
+      if (!movie) {
+        document.getElementById('error-msg').style.display = 'block';
+        document.getElementById('error-text').textContent =
+          'Film "' + escHtml(movieKey) + '" nicht gefunden.';
+        return;
+      }
+
+      document.title = movie.title + ' – München Kinos';
+      document.getElementById('movie-title').textContent = movie.title;
+
+      // Poster
+      if (movie.poster_url) {
+        var img = document.getElementById('poster');
+        img.src = movie.poster_url;
+        img.style.display = 'block';
+        img.onerror = function() { this.style.display = 'none'; };
+      }
+
+      // Description — prefer longer variant
+      var desc = movie.description_long || movie.description_full || movie.description || '';
+      if (desc) {
+        document.getElementById('movie-description').textContent = desc;
+        document.getElementById('desc-block').style.display = 'block';
+      }
+
+      // Badges: language, duration, year, genre
+      var badges = [];
+      if (movie.language) badges.push(movie.language);
+      if (movie.duration) badges.push(movie.duration);
+      if (movie.year)     badges.push(String(movie.year));
+      if (movie.genre)    badges.push(movie.genre);
+
+      document.getElementById('badges').innerHTML = badges.map(function(b) {
+        return '<span class="badge">' + escHtml(b) + '</span>';
+      }).join('');
+
+      // Key-value details
+      var details = [];
+      if (movie.director) details.push(['Regie', movie.director]);
+
+      document.getElementById('details-list').innerHTML = details.map(function(d) {
+        return '<div style="display:flex; gap:10px; margin-bottom:6px;">' +
+          '<span style="color:#a3a3a3; font-size:0.8rem; width:56px; flex-shrink:0;">' + escHtml(d[0]) + '</span>' +
+          '<span style="font-size:0.875rem;">' + escHtml(d[1]) + '</span>' +
+          '</div>';
+      }).join('');
+
+      // Showtimes
+      var cinemasList = Array.isArray(movie.cinemas) ? movie.cinemas : [];
+      document.getElementById('showtimes-list').innerHTML = cinemasList.map(function(c) {
+        var times    = Array.isArray(c.showtimes) ? c.showtimes : [];
+        var timeTags = times.map(function(t) {
+          return '<span class="time-tag">' + escHtml(t) + '</span>';
+        }).join('');
+
+        return '<div class="cinema-block">' +
+          '<p style="font-size:1rem; font-weight:600; color:#93c5fd; margin:0 0 8px;">' +
+            escHtml(c.display_name || c.cinema || '?') +
+          '</p>' +
+          '<div>' + timeTags + '</div>' +
+          '</div>';
+      }).join('');
+
+      document.getElementById('content').style.display = 'flex';
+    }
+
+    // Fetch — prefer CPEE data elements, fall back to direct API
+    var fetchUrl = instanceUrl
+      ? instanceUrl + '/properties/dataelements/all_movies'
+      : BASE_API + '/scrape/scrape_' + encodeURIComponent(category);
+
+    fetch(fetchUrl, instanceUrl ? { headers: { 'Accept': 'application/json' } } : {})
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        var movies = Array.isArray(data) ? data : [];
+        if (!movies.length && data && Array.isArray(data.value)) movies = data.value;
+        render(movies);
+      })
+      .catch(function(err) {
+        if (instanceUrl) {
+          fetch(BASE_API + '/scrape/scrape_' + encodeURIComponent(category))
+            .then(function(r) { return r.json(); })
+            .then(function(data) { render(Array.isArray(data) ? data : []); })
+            .catch(function(err2) {
+              document.getElementById('loading-left').style.display  = 'none';
+              document.getElementById('loading-right').style.display = 'none';
+              document.getElementById('error-msg').style.display = 'block';
+              document.getElementById('error-text').textContent = 'Fehler: ' + err2.message;
+            });
+        } else {
+          document.getElementById('loading-left').style.display  = 'none';
+          document.getElementById('loading-right').style.display = 'none';
+          document.getElementById('error-msg').style.display = 'block';
+          document.getElementById('error-text').textContent = 'Fehler: ' + err.message;
+        }
+      });
+  </script>
+</body>
+</html>

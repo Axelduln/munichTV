@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Munich Cinemas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    body { background-color: #0a0a0a; color: #e5e5e5; }
+    /* To use a background image, replace the line above with:
+       body { background: url('your-image.jpg') center/cover no-repeat fixed; color: #e5e5e5; } */
+    .card { border: 1px solid #2a2a2a; background-size: cover; background-position: center; position: relative; overflow: hidden; }
+    .card-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
+    .card-content { position: relative; z-index: 1; }
+    .qr-wrap canvas, .qr-wrap img { display: block; }
+    .cinema-list { list-style: none; margin: 0; padding: 0; }
+    .cinema-list li { padding: 3px 0; font-size: 0.8rem; color: #d4d4d4; }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased flex flex-col">
+
+  <header style="border-bottom:1px solid #2a2a2a;" class="px-8 py-6">
+    <h1 class="text-2xl font-semibold tracking-tight">Munich Cinemas — What's on today?</h1>
+    <p class="mt-2 text-sm max-w-xl" style="color:#a3a3a3;">
+      Pick the type of cinema that interests you — scan the QR code with your phone to see which films are showing in Munich today.
+    </p>
+  </header>
+
+  <main class="flex-1 px-8 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- Blockbuster -->
+      <div class="card p-6" style="background-image:url('blockbuster_cinema.jpeg');">
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 class="text-lg font-semibold mb-1">Blockbuster</h2>
+              <p class="text-xs" style="color:#a3a3a3;">Major mainstream films at the biggest multiplexes</p>
+            </div>
+            <div class="qr-wrap shrink-0" id="qr-blockbuster"></div>
+          </div>
+          <ul class="cinema-list">
+            <li>Mathäser Filmpalast</li>
+            <li>CinemaxX</li>
+            <li>Royal Filmpalast</li>
+            <li>Astor Film Lounge</li>
+            <li>Gloria Filmpalast</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Mixed -->
+      <div class="card p-6" style="background-image:url('mixed_cinema.jpeg');">
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 class="text-lg font-semibold mb-1">Mixed</h2>
+              <p class="text-xs" style="color:#a3a3a3;">A blend of mainstream and more diverse programming</p>
+            </div>
+            <div class="qr-wrap shrink-0" id="qr-mixed"></div>
+          </div>
+          <ul class="cinema-list">
+            <li>Museum Lichtspiel</li>
+            <li>Cinema München OV</li>
+            <li>Astor Film Lounge</li>
+            <li>Monopol</li>
+            <li>Rio Filmpalast</li>
+            <li>Cineplex Neufahrn</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Arthouse -->
+      <div class="card p-6" style="background-image:url('arthouse_cinmea.jpeg');">
+        <div class="card-overlay"></div>
+        <div class="card-content">
+          <div class="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 class="text-lg font-semibold mb-1">Arthouse</h2>
+              <p class="text-xs" style="color:#a3a3a3;">Art films, classics and international cinema</p>
+            </div>
+            <div class="qr-wrap shrink-0" id="qr-arthouse"></div>
+          </div>
+          <ul class="cinema-list">
+            <li>Theatiner</li>
+            <li>City-Atelier</li>
+            <li>Neues Rottmann</li>
+            <li>Werkstattkino</li>
+            <li>Cadillac &amp; Veranda</li>
+            <li>Filmmuseum München</li>
+            <li>Arena Filmtheater</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer style="border-top:1px solid #2a2a2a;" class="px-8 py-3">
+    <p class="text-xs" style="color:#a3a3a3;">© <span id="year"></span> Munich Movies Dashboard</p>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const BASE = 'https://lehre.bpm.in.tum.de/~ge82bob/frames';
+    const cb   = window.name || '';
+
+    function generateQRCodes(param) {
+      ['blockbuster', 'mixed', 'arthouse'].forEach(function(cat) {
+        new QRCode(document.getElementById('qr-' + cat), {
+          text: BASE + '/send.php?info=' + encodeURIComponent(cat) + '&' + param,
+          width: 96, height: 96,
+          colorDark: '#e5e5e5', colorLight: '#111111',
+          correctLevel: QRCode.CorrectLevel.L
+        });
+      });
+    }
+
+    if (cb) {
+      // Store callback URL server-side, use short token in QR codes
+      fetch(BASE + '/store_cb.php?cb=' + encodeURIComponent(cb))
+        .then(function(r) {
+          if (!r.ok) throw new Error('store failed');
+          return r.text();
+        })
+        .then(function(token) {
+          generateQRCodes('token=' + encodeURIComponent(token.trim()));
+        })
+        .catch(function() {
+          generateQRCodes('cb=' + encodeURIComponent(cb));
+        });
+    } else {
+      generateQRCodes('cb=');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,612 @@
+<testset xmlns="http://cpee.org/ns/properties/2.0">
+  <executionhandler>ruby</executionhandler>
+  <dataelements>
+    <category/>
+    <needs_scraping>true</needs_scraping>
+    <running>false</running>
+    <selected_movie/>
+    <page_num>0</page_num>
+    <page_result>continue</page_result>
+    <timer>true</timer>
+    <all_movies>[]</all_movies>
+    <favourite_cinema/>
+    <category_name/>
+    <results_html/>
+    <blockbuster_count>0</blockbuster_count>
+    <reset_timer>30s</reset_timer>
+    <arthouse_count>0</arthouse_count>
+    <mixed_count>0</mixed_count>
+  </dataelements>
+  <endpoints>
+    <frames_init>https-post://cpee.org/out/frames/</frames_init>
+    <user>https-post://cpee.org/services/timeout-user.php</user>
+    <auto>https-post://cpee.org/services/timeout-auto.php</auto>
+    <timeout>https://cpee.org/services/timeout.php</timeout>
+    <frames_display>https-put://cpee.org/out/frames/</frames_display>
+    <scrape_status>https-get://lehre.bpm.in.tum.de/ports/63826/admin/scrape_status</scrape_status>
+    <subprocess>https-post://cpee.org/flow/start/url/</subprocess>
+    <start_app>https-get://lehre.bpm.in.tum.de/~ge82bob/start_app.php</start_app>
+    <stop_app>https-get://lehre.bpm.in.tum.de/~ge82bob/stop_app.php</stop_app>
+  </endpoints>
+  <attributes>
+    <guarded>none</guarded>
+    <modeltype>CPEE</modeltype>
+    <theme>preset</theme>
+    <guarded_id/>
+    <creator>Christine Ashcreek</creator>
+    <info>logic_08-12</info>
+    <author>Alexander Madaus</author>
+    <framesid>alexTest</framesid>
+    <model_uuid>dd11d24d-65c7-40fd-bbb6-a8359ead40a1</model_uuid>
+    <model_version/>
+    <design_stage>development</design_stage>
+    <design_dir>Teaching.dir/Prak.dir/TUM-Prak-25-WS.dir/MadausAlexander.dir</design_dir>
+  </attributes>
+  <description>
+    <description xmlns="http://cpee.org/ns/description/1.0">
+      <call id="d1" endpoint="frames_init">
+        <parameters>
+          <label>Init Frames</label>
+          <color/>
+          <arguments>
+            <style_url>https://cpee.org/form/frames.css</style_url>
+            <document_url/>
+            <x_amount>100</x_amount>
+            <y_amount>100</y_amount>
+            <lang>de-at</lang>
+            <document_name>Munich Movies Dashboard</document_name>
+          </arguments>
+        </parameters>
+        <code>
+          <signal/>
+          <prepare>endpoints.frames_init += attributes.framesid</prepare>
+          <finalize output="result"/>
+          <update output="result"/>
+          <rescue output="result"/>
+        </code>
+        <annotations>
+          <_generic/>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <call id="a1" endpoint="start_app">
+        <parameters>
+          <label>start app</label>
+          <color/>
+          <arguments/>
+        </parameters>
+        <code>
+          <signal>false</signal>
+          <prepare/>
+          <finalize output="result">data.running = true
+data.page_num = 0
+sleep(5)</finalize>
+          <update output="result"/>
+          <rescue output="result"/>
+        </code>
+        <annotations>
+          <_generic/>
+          <_logging_behavior>
+            <_exclude>false</_exclude>
+            <_include>false</_include>
+          </_logging_behavior>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <report>
+            <url/>
+          </report>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <call id="d_status" endpoint="scrape_status">
+        <parameters>
+          <label>Check Scrape Status</label>
+          <color/>
+          <arguments/>
+        </parameters>
+        <code>
+          <signal/>
+          <prepare/>
+          <finalize output="result">data.needs_scraping = result['needs_scraping']</finalize>
+          <update output="result"/>
+          <rescue output="result">data.needs_scraping = false</rescue>
+        </code>
+        <annotations>
+          <_generic/>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <choose mode="exclusive" label="Scraping needed?">
+        <alternative condition="data.needs_scraping == true">
+          <call id="d_subprocess" endpoint="subprocess">
+            <parameters>
+              <label>Run Scraper (Process 1)</label>
+              <color/>
+              <arguments>
+                <behavior>wait_running</behavior>
+                <url>https://cpee.org/hub/server/Teaching.dir/Prak.dir/TUM-Prak-25-WS.dir/MadausAlexander.dir/scraper_orchestrator.xml</url>
+                <init/>
+                <endpoints/>
+                <attributes/>
+                <customization/>
+              </arguments>
+            </parameters>
+            <code>
+              <signal>false</signal>
+              <prepare/>
+              <finalize output="result"/>
+              <update output="result"/>
+              <rescue output="result"/>
+            </code>
+            <annotations>
+              <_generic/>
+              <_timing>
+                <_timing_weight/>
+                <_timing_avg/>
+                <explanations/>
+              </_timing>
+              <_shifting>
+                <_shifting_type>Duration</_shifting_type>
+              </_shifting>
+              <_context_data_analysis>
+                <probes/>
+                <ips/>
+              </_context_data_analysis>
+              <_notes>
+                <_notes_general/>
+              </_notes>
+            </annotations>
+            <documentation>
+              <input/>
+              <output/>
+              <implementation>
+                <description/>
+              </implementation>
+              <code>
+                <description/>
+              </code>
+            </documentation>
+          </call>
+          <_probability>
+            <_probability_min/>
+            <_probability_max/>
+            <_probability_avg/>
+          </_probability>
+        </alternative>
+        <otherwise/>
+      </choose>
+      <loop eid="e2" mode="pre_test" condition="data.running">
+        <parallel eid="e3" wait="1" cancel="last">
+          <parallel_branch>
+            <call id="d2" endpoint="frames_display">
+              <parameters>
+                <label>Show Landing Page</label>
+                <color/>
+                <arguments>
+                  <type>wait</type>
+                  <lx>0</lx>
+                  <ly>0</ly>
+                  <x_amount>100</x_amount>
+                  <y_amount>100</y_amount>
+                  <button/>
+                  <style/>
+                  <urls>
+                    <urls_item>
+                      <lang>de-at</lang>
+                      <url>!"https://lehre.bpm.in.tum.de/~ge82bob/frames/landing.html?instance=" + cpee.instance_url + "&amp;framesid=alexTest"</url>
+                    </urls_item>
+                  </urls>
+                  <default/>
+                </arguments>
+              </parameters>
+              <code>
+                <signal>false</signal>
+                <prepare>endpoints.frames_display += attributes.framesid</prepare>
+                <finalize output="result">data.category = result
+data.timer = true</finalize>
+                <update output="result"/>
+                <rescue output="result"/>
+              </code>
+              <annotations>
+                <_generic/>
+                <_logging_behavior>
+                  <_exclude>false</_exclude>
+                  <_include>false</_include>
+                </_logging_behavior>
+                <_timing>
+                  <_timing_weight/>
+                  <_timing_avg/>
+                  <explanations/>
+                </_timing>
+                <_shifting>
+                  <_shifting_type>Duration</_shifting_type>
+                </_shifting>
+                <_context_data_analysis>
+                  <probes/>
+                  <ips/>
+                </_context_data_analysis>
+                <report>
+                  <url/>
+                </report>
+                <_notes>
+                  <_notes_general/>
+                </_notes>
+              </annotations>
+              <documentation>
+                <input/>
+                <output/>
+                <implementation>
+                  <description/>
+                </implementation>
+                <code>
+                  <description/>
+                </code>
+              </documentation>
+            </call>
+            <choose mode="exclusive" label="Show Results?">
+              <alternative condition="data.category == 'blockbuster' || data.category == 'mixed' || data.category == 'arthouse'">
+                <loop mode="post_test" condition="data.page_result != nil">
+                  <_probability>
+                    <_probability_min/>
+                    <_probability_max/>
+                    <_probability_avg/>
+                  </_probability>
+                  <call id="a4" endpoint="frames_display">
+                    <parameters>
+                      <label>Show Results Page</label>
+                      <color/>
+                      <arguments>
+                        <type>wait</type>
+                        <lx>0</lx>
+                        <ly>0</ly>
+                        <x_amount>100</x_amount>
+                        <y_amount>100</y_amount>
+                        <button/>
+                        <style/>
+                        <urls>
+                          <urls_item>
+                            <lang>de-at</lang>
+                            <url>!"https://lehre.bpm.in.tum.de/~ge82bob/frames/results.html?category=" + data.category + "&amp;page=" + data.page_num.to_s + (data.favourite_cinema.to_s.strip.empty? ? "" : "&amp;favorites=" + data.favourite_cinema.to_s) + "&amp;instance=" + cpee.instance_url</url>
+                          </urls_item>
+                        </urls>
+                        <default/>
+                      </arguments>
+                    </parameters>
+                    <code>
+                      <signal>false</signal>
+                      <prepare>endpoints.frames_display += attributes.framesid</prepare>
+                      <finalize output="result">if result.to_s.start_with?('page:')
+  data.page_num = result.split(':')[1].to_i
+  data.page_result = 'continue'
+else
+  data.selected_movie = result
+  data.page_num = 0
+  data.page_result = nil
+end
+data.timer = true</finalize>
+                      <update output="result"/>
+                      <rescue output="result"/>
+                    </code>
+                    <annotations>
+                      <_generic/>
+                      <_logging_behavior>
+                        <_exclude>false</_exclude>
+                        <_include>false</_include>
+                      </_logging_behavior>
+                      <_timing>
+                        <_timing_weight/>
+                        <_timing_avg/>
+                        <explanations/>
+                      </_timing>
+                      <_shifting>
+                        <_shifting_type>Duration</_shifting_type>
+                      </_shifting>
+                      <_context_data_analysis>
+                        <probes/>
+                        <ips/>
+                      </_context_data_analysis>
+                      <report>
+                        <url/>
+                      </report>
+                      <_notes>
+                        <_notes_general/>
+                      </_notes>
+                    </annotations>
+                    <documentation>
+                      <input/>
+                      <output/>
+                      <implementation>
+                        <description/>
+                      </implementation>
+                      <code>
+                        <description/>
+                      </code>
+                    </documentation>
+                  </call>
+                </loop>
+                <call id="a5" endpoint="frames_display">
+                  <parameters>
+                    <label>Show Detail Page</label>
+                    <color/>
+                    <arguments>
+                      <type>wait</type>
+                      <lx>0</lx>
+                      <ly>0</ly>
+                      <x_amount>100</x_amount>
+                      <y_amount>100</y_amount>
+                      <button/>
+                      <style/>
+                      <urls>
+                        <urls_item>
+                          <lang>de-at</lang>
+                          <url>!"https://lehre.bpm.in.tum.de/~ge82bob/frames/detail.html?movie=" + data.selected_movie.to_s + "&amp;category=" + data.category + "&amp;instance=" + cpee.instance_url</url>
+                        </urls_item>
+                      </urls>
+                      <default/>
+                    </arguments>
+                  </parameters>
+                  <code>
+                    <signal/>
+                    <prepare>endpoints.frames_display += attributes.framesid</prepare>
+                    <finalize output="result">data.selected_movie = nil
+data.timer = true</finalize>
+                    <update output="result"/>
+                    <rescue output="result"/>
+                  </code>
+                  <annotations>
+                    <_generic/>
+                    <_timing>
+                      <_timing_weight/>
+                      <_timing_avg/>
+                      <explanations/>
+                    </_timing>
+                    <_shifting>
+                      <_shifting_type>Duration</_shifting_type>
+                    </_shifting>
+                    <_context_data_analysis>
+                      <probes/>
+                      <ips/>
+                    </_context_data_analysis>
+                    <_notes>
+                      <_notes_general/>
+                    </_notes>
+                  </annotations>
+                  <documentation>
+                    <input/>
+                    <output/>
+                    <implementation>
+                      <description/>
+                    </implementation>
+                    <code>
+                      <description/>
+                    </code>
+                  </documentation>
+                </call>
+              </alternative>
+              <otherwise>
+                <manipulate id="d4b" label="Skip Results">
+                  <code>data.category = nil
+data.category_name = nil</code>
+                </manipulate>
+              </otherwise>
+            </choose>
+          </parallel_branch>
+          <parallel_branch>
+            <loop mode="pre_test" condition="data.timer == true">
+              <manipulate id="a6c" label="Reset Timer Flag">
+                <code>data.timer = false</code>
+              </manipulate>
+              <call id="a6" endpoint="timeout">
+                <parameters>
+                  <label>Timer</label>
+                  <color/>
+                  <method>:post</method>
+                  <arguments>
+                    <timeout>60</timeout>
+                    <data/>
+                  </arguments>
+                </parameters>
+                <code>
+                  <signal>false</signal>
+                  <prepare/>
+                  <finalize output="result"/>
+                  <update output="result"/>
+                  <rescue output="result"/>
+                </code>
+                <annotations>
+                  <_generic/>
+                  <_logging_behavior>
+                    <_exclude>false</_exclude>
+                    <_include>false</_include>
+                  </_logging_behavior>
+                  <_timing>
+                    <_timing_weight/>
+                    <_timing_avg/>
+                    <explanations/>
+                  </_timing>
+                  <_shifting>
+                    <_shifting_type>Duration</_shifting_type>
+                  </_shifting>
+                  <_context_data_analysis>
+                    <probes/>
+                    <ips/>
+                  </_context_data_analysis>
+                  <report>
+                    <url/>
+                  </report>
+                  <_notes>
+                    <_notes_general/>
+                  </_notes>
+                </annotations>
+                <documentation>
+                  <input/>
+                  <output/>
+                  <implementation>
+                    <description/>
+                  </implementation>
+                  <code>
+                    <description/>
+                  </code>
+                </documentation>
+              </call>
+            </loop>
+            <manipulate id="a6b" label="Stop Loop">
+              <code>data.running = false</code>
+            </manipulate>
+          </parallel_branch>
+        </parallel>
+        <_probability>
+          <_probability_min/>
+          <_probability_max/>
+          <_probability_avg/>
+        </_probability>
+        <_annotations>
+          <_logging_behavior>
+            <_iteration>false</_iteration>
+          </_logging_behavior>
+        </_annotations>
+        <manipulate id="d5" label="Reset for Next Iteration">
+          <code>data.category = nil
+data.selected_movie = nil
+data.page_num = 0
+data.page_result = 'continue'
+data.timer = true
+data.all_movies = []</code>
+          <annotations>
+            <_logging_behavior>
+              <_exclude>false</_exclude>
+            </_logging_behavior>
+            <_context_data_analysis>
+              <probes/>
+            </_context_data_analysis>
+          </annotations>
+        </manipulate>
+      </loop>
+      <call id="a2" endpoint="stop_app">
+        <parameters>
+          <label>stop app</label>
+          <color/>
+          <arguments/>
+        </parameters>
+        <code>
+          <signal>false</signal>
+          <prepare/>
+          <finalize output="result"/>
+          <update output="result"/>
+          <rescue output="result"/>
+        </code>
+        <annotations>
+          <_generic/>
+          <_logging_behavior>
+            <_exclude>false</_exclude>
+            <_include>false</_include>
+          </_logging_behavior>
+          <_timing>
+            <_timing_weight/>
+            <_timing_avg/>
+            <explanations/>
+          </_timing>
+          <_shifting>
+            <_shifting_type>Duration</_shifting_type>
+          </_shifting>
+          <_context_data_analysis>
+            <probes/>
+            <ips/>
+          </_context_data_analysis>
+          <report>
+            <url/>
+          </report>
+          <_notes>
+            <_notes_general/>
+          </_notes>
+        </annotations>
+        <documentation>
+          <input/>
+          <output/>
+          <implementation>
+            <description/>
+          </implementation>
+          <code>
+            <description/>
+          </code>
+        </documentation>
+      </call>
+      <stop id="d_end"/>
+    </description>
+  </description>
+  <transformation>
+    <description type="copy"/>
+    <dataelements type="none"/>
+    <endpoints type="none"/>
+  </transformation>
+</testset>

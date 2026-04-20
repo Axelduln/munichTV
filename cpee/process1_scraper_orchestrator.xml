@@ -1,0 +1,196 @@
+<testset xmlns="http://cpee.org/ns/properties/2.0">
+  <executionhandler>ruby</executionhandler>
+  <dataelements>
+    <arthouse_count>4</arthouse_count>
+    <blockbuster_count>4</blockbuster_count>
+    <mixed_count>4</mixed_count>
+    <needs_scraping/>
+    <has_data>false</has_data>
+    <last_scrape/>
+  </dataelements>
+  <endpoints>
+    <scrape_status>https-get://lehre.bpm.in.tum.de/ports/63826/admin/scrape_status</scrape_status>
+    <timeout>https-post://cpee.org/services/timeout.php</timeout>
+    <scrape_cat_blockbuster>https-get://lehre.bpm.in.tum.de/ports/63826/scrape/category/blockbuster</scrape_cat_blockbuster>
+    <subprocess>https-post://cpee.org/flow/start/url/</subprocess>
+    <scrape_cat_arthouse>https-get://lehre.bpm.in.tum.de/ports/63826/scrape/category/arthouse</scrape_cat_arthouse>
+    <scrape_cat_mixed>https-get://lehre.bpm.in.tum.de/ports/63826/scrape/category/mixed</scrape_cat_mixed>
+  </endpoints>
+  <attributes>
+    <guarded>none</guarded>
+    <info>scraper_orchestrator</info>
+    <modeltype>CPEE</modeltype>
+    <theme>preset</theme>
+    <creator>Christine Ashcreek</creator>
+    <guarded_id/>
+    <author>Alexander Madaus</author>
+    <design_stage>development</design_stage>
+    <model_uuid>ce439ca6-66ea-4680-934f-ef472c2d1e60</model_uuid>
+    <model_version/>
+    <design_dir>Teaching.dir/Prak.dir/TUM-Prak-25-WS.dir/MadausAlexander.dir</design_dir>
+  </attributes>
+  <description>
+    <description xmlns="http://cpee.org/ns/description/1.0">
+      <parallel wait="-1" cancel="last">
+        <parallel_branch>
+          <call id="s2a" endpoint="scrape_cat_blockbuster">
+            <parameters>
+              <label>Scrape Blockbuster Cinemas</label>
+              <color/>
+              <arguments/>
+            </parameters>
+            <code>
+              <signal/>
+              <prepare/>
+              <finalize output="result">data.blockbuster_count = result.length rescue 0</finalize>
+              <update output="result"/>
+              <rescue output="result"/>
+            </code>
+            <annotations>
+              <_generic/>
+              <_logging_behavior>
+                <_exclude/>
+                <_include/>
+              </_logging_behavior>
+              <_timing>
+                <_timing_weight/>
+                <_timing_avg/>
+                <explanations/>
+              </_timing>
+              <_shifting>
+                <_shifting_type>Duration</_shifting_type>
+              </_shifting>
+              <_context_data_analysis>
+                <probes/>
+                <ips/>
+              </_context_data_analysis>
+              <report>
+                <url/>
+              </report>
+              <_notes>
+                <_notes_general/>
+              </_notes>
+            </annotations>
+            <documentation>
+              <input/>
+              <output/>
+              <implementation>
+                <description/>
+              </implementation>
+              <code>
+                <description/>
+              </code>
+            </documentation>
+          </call>
+        </parallel_branch>
+        <parallel_branch>
+          <call id="s2b" endpoint="scrape_cat_arthouse">
+            <parameters>
+              <label>Scrape Arthouse Cinemas</label>
+              <color/>
+              <arguments/>
+            </parameters>
+            <code>
+              <signal/>
+              <prepare/>
+              <finalize output="result">data.arthouse_count = result.length rescue 0</finalize>
+              <update output="result"/>
+              <rescue output="result"/>
+            </code>
+            <annotations>
+              <_generic/>
+              <_logging_behavior>
+                <_exclude/>
+                <_include/>
+              </_logging_behavior>
+              <_timing>
+                <_timing_weight/>
+                <_timing_avg/>
+                <explanations/>
+              </_timing>
+              <_shifting>
+                <_shifting_type>Duration</_shifting_type>
+              </_shifting>
+              <_context_data_analysis>
+                <probes/>
+                <ips/>
+              </_context_data_analysis>
+              <report>
+                <url/>
+              </report>
+              <_notes>
+                <_notes_general/>
+              </_notes>
+            </annotations>
+            <documentation>
+              <input/>
+              <output/>
+              <implementation>
+                <description/>
+              </implementation>
+              <code>
+                <description/>
+              </code>
+            </documentation>
+          </call>
+        </parallel_branch>
+        <parallel_branch>
+          <call id="s2c" endpoint="scrape_cat_mixed">
+            <parameters>
+              <label>Scrape Mixed Cinemas</label>
+              <color/>
+              <arguments/>
+            </parameters>
+            <code>
+              <signal/>
+              <prepare/>
+              <finalize output="result">data.mixed_count = result.length rescue 0</finalize>
+              <update output="result"/>
+              <rescue output="result"/>
+            </code>
+            <annotations>
+              <_generic/>
+              <_logging_behavior>
+                <_exclude/>
+                <_include/>
+              </_logging_behavior>
+              <_timing>
+                <_timing_weight/>
+                <_timing_avg/>
+                <explanations/>
+              </_timing>
+              <_shifting>
+                <_shifting_type>Duration</_shifting_type>
+              </_shifting>
+              <_context_data_analysis>
+                <probes/>
+                <ips/>
+              </_context_data_analysis>
+              <report>
+                <url/>
+              </report>
+              <_notes>
+                <_notes_general/>
+              </_notes>
+            </annotations>
+            <documentation>
+              <input/>
+              <output/>
+              <implementation>
+                <description/>
+              </implementation>
+              <code>
+                <description/>
+              </code>
+            </documentation>
+          </call>
+        </parallel_branch>
+      </parallel>
+    </description>
+  </description>
+  <transformation>
+    <description type="copy"/>
+    <dataelements type="none"/>
+    <endpoints type="none"/>
+  </transformation>
+</testset>

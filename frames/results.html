@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>München Kinos – Filme</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background-color: #0a0a0a; color: #e5e5e5; margin: 0; }
+    .movie-row {
+      background-color: #111111;
+      border: 1px solid #2a2a2a;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .movie-row:hover { border-color: #3b82f6; }
+    .badge {
+      background-color: #1e293b;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+    .cinema-block {
+      background-color: #0d0d0d;
+      border: 1px solid #1e1e1e;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+    }
+    .time-tag {
+      background-color: #1e293b;
+      color: #93c5fd;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      margin: 2px;
+      display: inline-block;
+    }
+    #movie-list div[id^="qr-movie"] canvas,
+    #movie-list div[id^="qr-movie"] img { display: block; }
+    #qr-next-page canvas,
+    #qr-next-page img { display: block; }
+  </style>
+</head>
+<body class="font-sans antialiased">
+  <div style="height:100vh; overflow:hidden; display:flex; flex-direction:column;">
+    <header style="border-bottom:1px solid #2a2a2a;" class="px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-semibold" id="category-title">Lade…</h1>
+        <p class="text-sm mt-1" style="color:#a3a3a3;" id="movie-count"></p>
+      </div>
+    </header>
+
+    <main class="flex-1 px-6 py-6 overflow-hidden" style="min-height:0;">
+      <div id="loading" class="text-center py-16" style="color:#a3a3a3;">
+        <div class="text-4xl mb-4">⏳</div>
+        <p>Filme werden geladen…</p>
+      </div>
+      <div id="movie-list" style="display:none; flex-direction:column; gap:0.75rem; height:100%;"></div>
+      <div id="error-msg" class="text-center py-16" style="display:none; color:#a3a3a3;">
+        <div class="text-4xl mb-4">⚠️</div>
+        <p id="error-text">Fehler beim Laden der Filme.</p>
+      </div>
+    </main>
+
+    <footer style="border-top:1px solid #2a2a2a;" class="px-6 py-3 flex items-center justify-between">
+      <p class="text-xs" style="color:#a3a3a3;">Auto-Rückkehr in <span id="countdown">60</span>s</p>
+      <div id="next-page-section" class="flex items-center gap-3" style="display:none;">
+        <p class="text-xs" style="color:#a3a3a3;">Nächste Seite →</p>
+        <div id="qr-next-page"></div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    const BASE_API    = 'https://lehre.bpm.in.tum.de/ports/63826/scrape';
+    const BASE_FRAMES = 'https://lehre.bpm.in.tum.de/~ge82bob/frames';
+
+    const params    = new URLSearchParams(window.location.search);
+    const category  = params.get('category') || 'blockbuster';
+    const page      = parseInt(params.get('page') || '0', 10);
+    const favorites = params.get('favorites') || '';
+    const MOVIES_PER_PAGE = 4;
+
+    const CATEGORY_LABELS = {
+      blockbuster: '🍿 Blockbuster',
+      mixed:       '🎭 Mixed',
+      arthouse:    '🎨 Arthouse'
+    };
+
+    document.getElementById('category-title').textContent =
+      CATEGORY_LABELS[category] || category;
+
+    // ── Countdown ──────────────────────────────────────────────────────────
+    let timeLeft = 60;
+    const timer = setInterval(function() {
+      timeLeft--;
+      var el = document.getElementById('countdown');
+      if (el) el.textContent = timeLeft;
+      if (timeLeft <= 0) { clearInterval(timer); backToLanding(); }
+    }, 1000);
+
+    function resetTimer() {
+      timeLeft = 60;
+    }
+    document.addEventListener('click', resetTimer);
+
+    // ── CPEE back ──────────────────────────────────────────────────────────
+    function backToLanding() {
+      clearInterval(timer);
+      try {
+        window.parent.sendJson(window.name, { back: true });
+      } catch(e) {
+        try {
+          window.parent.postMessage(JSON.stringify({ back: true }), '*');
+        } catch(e2) {
+          window.location.href = 'landing.html';
+        }
+      }
+    }
+
+    // ── Group movies by title_normalized or title ──────────────────────────
+    function groupMovies(movies) {
+      const map = {};
+      movies.forEach(function(m) {
+        const key = m.title_normalized || m.title;
+        if (!map[key]) {
+          map[key] = {
+            title: m.title,
+            title_normalized: key,
+            language: m.language || '',
+            duration: m.duration || '',
+            poster_url: m.poster_url || '',
+            cinemas: {}
+          };
+        } else if (!map[key].poster_url && m.poster_url) {
+          map[key].poster_url = m.poster_url;
+        }
+        // API returns nested cinemas array: [{ display_name, showtimes: [] }]
+        var cinemasList = Array.isArray(m.cinemas) ? m.cinemas : [];
+        cinemasList.forEach(function(c) {
+          var name = c.display_name || c.cinema || c.cinema_key || '?';
+          if (!map[key].cinemas[name]) map[key].cinemas[name] = [];
+          var times = Array.isArray(c.showtimes) ? c.showtimes : [];
+          times.forEach(function(t) { map[key].cinemas[name].push(t); });
+        });
+      });
+      return Object.values(map);
+    }
+
+    const cb = window.name || '';
+
+    // ── Render ─────────────────────────────────────────────────────────────
+    function render(movies) {
+      if (movies.length) console.log('[DEBUG] movie[0]:', JSON.stringify(movies[0]));
+      const grouped = groupMovies(movies);
+      const totalPages = Math.max(1, Math.ceil(grouped.length / MOVIES_PER_PAGE));
+      const pageMovies = grouped.slice(page * MOVIES_PER_PAGE, (page + 1) * MOVIES_PER_PAGE);
+      const list = document.getElementById('movie-list');
+
+      if (grouped.length === 0) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error-msg').style.display = 'block';
+        document.getElementById('error-text').textContent = 'Keine Filme gefunden.';
+        return;
+      }
+
+      document.getElementById('movie-count').textContent =
+        grouped.length + ' Film' + (grouped.length !== 1 ? 'e' : '') +
+        (totalPages > 1 ? ' · Seite ' + (page + 1) + '/' + totalPages : '');
+
+      list.innerHTML = pageMovies.map(function(movie, idx) {
+        const cinemaHtml = Object.keys(movie.cinemas).map(function(cinema) {
+          const times = movie.cinemas[cinema];
+          const timeTags = times.map(function(t) {
+            return '<span class="time-tag">' + escHtml(t) + '</span>';
+          }).join('');
+          return '<div class="cinema-block">' +
+            '<p class="text-sm font-medium mb-1" style="color:#93c5fd;">' + escHtml(cinema) + '</p>' +
+            '<div>' + timeTags + '</div>' +
+            '</div>';
+        }).join('');
+
+        const meta = [];
+        if (movie.language) meta.push('<span class="badge">' + escHtml(movie.language) + '</span>');
+        if (movie.duration) meta.push('<span class="badge">' + escHtml(movie.duration) + '</span>');
+
+        const posterHtml = movie.poster_url
+          ? '<img src="' + escHtml(movie.poster_url) + '" ' +
+            'style="width:60px;height:90px;object-fit:cover;border-radius:4px;flex-shrink:0;" ' +
+            'onerror="this.style.display=\'none\'" />'
+          : '<div style="width:60px;height:90px;flex-shrink:0;"></div>';
+
+        return '<div class="movie-row" style="flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:row; gap:12px; padding:10px 16px;">' +
+          posterHtml +
+          '<div style="flex:1; min-width:0; overflow:hidden; display:flex; flex-direction:column;">' +
+          '<h2 class="text-base font-semibold" style="margin:0 0 4px; flex-shrink:0;">' + escHtml(movie.title) + '</h2>' +
+          '<div class="flex gap-2 flex-wrap" style="flex-shrink:0; margin-bottom:6px;">' + meta.join('') + '</div>' +
+          '<div style="flex:1; min-height:0; overflow:hidden;">' + cinemaHtml + '</div>' +
+          '</div>' +
+          '<div style="flex-shrink:0; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center;">' +
+          '<div id="qr-movie-' + idx + '"></div>' +
+          '<p class="text-xs" style="color:#a3a3a3; margin-top:2px;">Detail</p>' +
+          '</div>' +
+          '</div>';
+      }).join('');
+
+      document.getElementById('loading').style.display = 'none';
+      list.style.display = 'flex';
+
+      // Render QR codes for each movie row (send.php callback to CPEE)
+      pageMovies.forEach(function(movie, idx) {
+        var sendUrl = BASE_FRAMES + '/send.php?info=' + encodeURIComponent(movie.title_normalized) +
+                      '&cb=' + encodeURIComponent(cb);
+        var el = document.getElementById('qr-movie-' + idx);
+        if (el) {
+          new QRCode(el, {
+            text: sendUrl,
+            width: 80,
+            height: 80,
+            colorDark: '#e5e5e5',
+            colorLight: '#111111',
+            correctLevel: QRCode.CorrectLevel.L
+          });
+        }
+      });
+
+      // Next-page QR (sends page:<n> via CPEE callback)
+      if (page < totalPages - 1) {
+        document.getElementById('next-page-section').style.display = 'flex';
+        var nextUrl = BASE_FRAMES + '/send.php?info=' + encodeURIComponent('page:' + (page + 1)) +
+                      '&cb=' + encodeURIComponent(cb);
+        new QRCode(document.getElementById('qr-next-page'), {
+          text: nextUrl,
+          width: 80,
+          height: 80,
+          colorDark: '#e5e5e5',
+          colorLight: '#111111',
+          correctLevel: QRCode.CorrectLevel.L
+        });
+      }
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    // ── Fetch ──────────────────────────────────────────────────────────────
+    // Prefer CPEE data elements (set by orchestrator) over direct API call
+    var instanceUrl = params.get('instance');
+    var favParam = favorites ? '?favorites=' + encodeURIComponent(favorites) : '';
+    var fetchUrl = instanceUrl
+      ? instanceUrl + '/properties/dataelements/all_movies'
+      : BASE_API + '/scrape_' + category + favParam;
+
+    fetch(fetchUrl, instanceUrl ? { headers: { 'Accept': 'application/json' } } : {})
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        var movies = Array.isArray(data) ? data : [];
+        // CPEE may wrap the value; unwrap if needed
+        if (!movies.length && data && Array.isArray(data.value)) movies = data.value;
+        if (!movies.length && !instanceUrl) return; // already rendered error
+        render(movies);
+      })
+      .catch(function(err) {
+        // If CPEE fetch failed, fall back to direct API
+        if (instanceUrl) {
+          fetch(BASE_API + '/scrape_' + category + favParam)
+            .then(function(r) { return r.json(); })
+            .then(function(data) { render(Array.isArray(data) ? data : []); })
+            .catch(function(err2) {
+              document.getElementById('loading').style.display = 'none';
+              document.getElementById('error-msg').style.display = 'block';
+              document.getElementById('error-text').textContent = 'Fehler: ' + err2.message;
+            });
+        } else {
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('error-msg').style.display = 'block';
+          document.getElementById('error-text').textContent = 'Fehler: ' + err.message;
+        }
+      });
+  </script>
+</body>
+</html>
