@@ -27,6 +27,7 @@
     <subprocess>https-post://cpee.org/flow/start/url/</subprocess>
     <start_app>https-get://lehre.bpm.in.tum.de/~ge82bob/start_app.php</start_app>
     <stop_app>https-get://lehre.bpm.in.tum.de/~ge82bob/stop_app.php</stop_app>
+    <share_selection>https-post://lehre.bpm.in.tum.de/ports/63826/admin/share_selection</share_selection>
   </endpoints>
   <attributes>
     <guarded>none</guarded>
@@ -394,6 +395,23 @@ data.timer = true</finalize>
                     </documentation>
                   </call>
                 </loop>
+                <call id="a4b" endpoint="share_selection">
+                  <parameters>
+                    <label>Share Selection</label>
+                    <color/>
+                    <arguments>
+                      <selected_movie>!data.selected_movie</selected_movie>
+                      <category>!data.category</category>
+                    </arguments>
+                  </parameters>
+                  <code>
+                    <signal>false</signal>
+                    <prepare/>
+                    <finalize output="result"/>
+                    <update output="result"/>
+                    <rescue output="result"/>
+                  </code>
+                </call>
                 <call id="a5" endpoint="frames_display">
                   <parameters>
                     <label>Show Detail Page</label>

@@ -96,6 +96,23 @@ get '/' do
   })
 end
 
+post '/admin/share_selection' do
+  title = params[:selected_movie]
+  category = params[:category]
+  cinemas = CINEMA_CATEGORIES[category] || []
+  movies = DB.aggregate_movies(DB.get_movies_by_category(cinemas))
+  match = movies.find { |m| m['title_normalized'] == title }
+  cinemas_data = match ? match['cinemas'].map { |c| { name: c['display_name'], showtimes: c['showtimes'] } } : []
+  data = {
+    selected_movie: title,
+    category: category,
+    cinemas: cinemas_data,
+    timestamp: Time.now.to_s
+  }
+  File.write('/srv/gruppe/students/ge82bob/public_html/selection.json', JSON.generate(data))
+  json({ ok: true })
+end
+
 get '/admin/scrape_status' do
   json({
     needs_scraping: !DB.has_todays_data?,
